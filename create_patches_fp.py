@@ -11,6 +11,7 @@ import pdb
 import pandas as pd
 from tqdm import tqdm
 
+# 读取切片结果并生成低分辨率的拼接图
 def stitching(file_path, wsi_object, downscale = 64):
 	start = time.time()
 	heatmap = StitchCoords(file_path, wsi_object, downscale=downscale, bg_color=(0,0,0), alpha=-1, draw_grid=False)
@@ -18,6 +19,7 @@ def stitching(file_path, wsi_object, downscale = 64):
 	
 	return heatmap, total_time
 
+# 对wsi进行组织分割
 def segment(WSI_object, seg_params = None, filter_params = None, mask_file = None):
 	### Start Seg Timer
 	start_time = time.time()
@@ -32,6 +34,7 @@ def segment(WSI_object, seg_params = None, filter_params = None, mask_file = Non
 	seg_time_elapsed = time.time() - start_time   
 	return WSI_object, seg_time_elapsed
 
+# 对wsi进行切片处理
 def patching(WSI_object, **kwargs):
 	### Start Patch Timer
 	start_time = time.time()
@@ -44,7 +47,8 @@ def patching(WSI_object, **kwargs):
 	patch_time_elapsed = time.time() - start_time
 	return file_path, patch_time_elapsed
 
-
+# 批量处理多个wsi文件，包括组织分割，切片以及结果保存
+# 提供对于参数的灵活支持
 def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_dir, 
 				  patch_size = 256, step_size = 256, 
 				  seg_params = {'seg_level': -1, 'sthresh': 8, 'mthresh': 7, 'close': 4, 'use_otsu': False,
@@ -59,7 +63,7 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 				  patch = False, auto_skip=True, process_list = None):
 	
 
-
+	# 加载数据
 	slides = sorted(os.listdir(source))
 	slides = [slide for slide in slides if os.path.isfile(os.path.join(source, slide))]
 	if process_list is None:
@@ -105,6 +109,15 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 		# Inialize WSI
 		full_path = os.path.join(source, slide)
 		WSI_object = WholeSlideImage(full_path)
+		# 修改跳过打不开的文件，并输出打不开的文件的列表
+	# 	try:
+    # 		WSI_object = WholeSlideImage(full_path)
+	# 	except Exception as e:
+   	# 		 print(f"Error processing file {full_path}: {e}")
+    # # 记录错误文件以便之后检查
+    # with open("error_files.log", "a") as log_file:
+    #     log_file.write(f"{full_path}\n")
+    # return None, None  # 跳过该文件并返回空值
 
 		if use_default_params:
 			current_vis_params = vis_params.copy()

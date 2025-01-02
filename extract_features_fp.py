@@ -8,6 +8,7 @@ from functools import partial
 # import torch
 import torch
 import torch.nn as nn
+import torchvision.models as models
 import timm
 from torch.utils.data import DataLoader
 from PIL import Image
@@ -20,6 +21,9 @@ import numpy as np
 from utils.file_utils import save_hdf5
 from dataset_modules.dataset_h5 import Dataset_All_Bags, Whole_Slide_Bag_FP
 from models import get_encoder
+
+# 1.1 禁用SSL
+os.environ["HF_HUB_DISABLE_SSL_VERIFY"] = "1"
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -50,6 +54,16 @@ def compute_w_loader(output_path, loader, model, verbose = 0):
 	return output_path
 
 
+
+	# 加载 ResNet50 并替换权重
+def load_local_resnet50(model_path):
+	model = models.resnet50(pretrained=False)  # 不加载默认权重
+	model.fc = torch.nn.Identity()  # 去掉分类层，仅提取特征
+	checkpoint = torch.load(model_path, map_location=device)
+	model.load_state_dict(checkpoint)
+	return model
+	
+
 parser = argparse.ArgumentParser(description='Feature Extraction')
 parser.add_argument('--data_h5_dir', type=str, default=None)
 parser.add_argument('--data_slide_dir', type=str, default=None)
@@ -75,6 +89,15 @@ if __name__ == '__main__':
 	os.makedirs(os.path.join(args.feat_dir, 'pt_files'), exist_ok=True)
 	os.makedirs(os.path.join(args.feat_dir, 'h5_files'), exist_ok=True)
 	dest_files = os.listdir(os.path.join(args.feat_dir, 'pt_files'))
+
+
+	# 替换默认的模型加载逻辑
+	# if args.model_name == 'resnet50_trunc':
+	# 	local_model_path = "/home/ranxiangyu/CLAM/patameters/resnet50.pth"
+	# 	model = load_local_resnet50(local_model_path)
+	# 	img_transforms = None  # 根据模型需求设置 transforms
+	# else:
+	# 	model, img_transforms = get_encoder(args.model_name, target_img_size=args.target_patch_size)
 
 	model, img_transforms = get_encoder(args.model_name, target_img_size=args.target_patch_size)
 			
