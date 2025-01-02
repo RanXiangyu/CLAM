@@ -20,3 +20,12 @@ python create_patches_fp.py --source /data2/ranxiangyu/kidney_wsi --save_dir /da
         修改方式错误——失败
     遇到问题 pandas & numpy打不开csv文件
         版本问题，更改两个包的版本
+
+
+关于git：连不上网
+解决：改变了git的默认端口 port 22
+    nano ~/.ssh/config
+    
+    Host github.com
+        Hostname ssh.github.com
+        Port 443
