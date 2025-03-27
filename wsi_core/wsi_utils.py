@@ -73,6 +73,7 @@ def save_hdf5(output_path, asset_dict, attr_dict= None, mode='a'):
     file.close()
     return output_path
 
+# 初始化 HDF5 数据集，并存入 first_patch
 def initialize_hdf5_bag(first_patch, save_coord=False):
     x, y, cont_idx, patch_level, downsample, downsampled_level_dim, level_dim, img_patch, name, save_path = tuple(first_patch.values())
     file_path = os.path.join(save_path, name)+'.h5'

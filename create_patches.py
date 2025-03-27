@@ -16,7 +16,7 @@ def stitching(file_path, downscale = 64):
 	total_time = time.time() - start
 	
 	return heatmap, total_time
-
+# 组织分割和贴片的函数
 def segment(WSI_object, seg_params, filter_params):
 	### Start Seg Timer
 	start_time = time.time()
@@ -64,8 +64,9 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 		df = pd.read_csv(process_list)
 		df = initialize_df(df, seg_params, filter_params, vis_params, patch_params, save_patches=True)
 
-
+	# process_list_autogen.csv is the default name for the process list
 	mask = df['process'] == 1
+	#	保留process列为1的行
 	process_stack = df[mask]
 
 	total = len(process_stack)
@@ -74,8 +75,9 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 	stitch_times = 0.
 
 	for i in range(total):
+		# 将df保存为csv文件
 		df.to_csv(os.path.join(save_dir, 'process_list_autogen.csv'), index=False)
-		idx = process_stack.index[i]
+		idx = process_stack.index[i] # index of the slide in the original df 获取索引 
 		slide = process_stack.loc[idx, 'slide_id']
 		print("\n\nprogress: {:.2f}, {}/{}".format(i/total, i, total))
 		print('processing {}'.format(slide))
@@ -173,6 +175,7 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 			file_path, patch_time_elapsed = patching(WSI_object = WSI_object, **current_patch_params)
 		
 		stitch_time_elapsed = -1
+		# 拼接的代码 调用h5处理函数
 		if stitch:
 			file_path = os.path.join(patch_save_dir, slide_id+'.h5')
 			heatmap, stitch_time_elapsed = stitching(file_path, downscale=64)

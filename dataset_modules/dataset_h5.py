@@ -15,6 +15,7 @@ class Whole_Slide_Bag(Dataset):
 		Args:
 			file_path (string): Path to the .h5 file containing patched data.
 			roi_transforms (callable, optional): Optional transform to be applied on a sample
+			图像变换数据增强等
 		"""
 		self.roi_transforms = img_transforms
 		self.file_path = file_path

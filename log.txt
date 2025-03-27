@@ -9,11 +9,14 @@
 2025.1.1
 1. 运行patches
 python create_patches_fp.py --source /data2/ranxiangyu/kidney_wsi --save_dir /data2/ranxiangyu/kidney_clam --patch_size 256 --seg --patch --stitch 
+python create_patches_fp.py --source /data2/ranxiangyu/kidney_wsi --save_dir /data2/ranxiangyu/kidney_patch/kidney_patch_512 --patch_size 512 --seg --patch --stitch 
     遇到问题Traceback (most recent call last):
     PIL.UnidentifiedImageError: cannot identify image file '/data2/ranxiangyu/kidney_wsi/23134pas.svs'
     解决方法：更新异常捕获，跳过此类文件
 2. 运行提取features
  CUDA_VISIBLE_DEVICES=0 python extract_features_fp.py --data_h5_dir /data2/ranxiangyu/kidney_patch/ --data_slide_dir /data2/ranxiangyu/kidney_wsi/ --csv_path /data2/ranxiangyu/kidney_patch/process_list_autogen.csv --feat_dir /data2/ranxiangyu/kidney_features/ --batch_size 512 --slide_ext .svs
+    CUDA_VISIBLE_DEVICES=0 python extract_features_fp.py --data_h5_dir /data2/ranxiangyu/kidney_patch/ --data_slide_dir /data2/ranxiangyu/kidney_wsi/ --csv_path /data2/ranxiangyu/kidney_patch/process.csv --feat_dir /data2/ranxiangyu/kidney_features/ --batch_size 512 --slide_ext .svs
+
     遇到问题 huggingdace-hub连接不上
     使用代理：huggingface-cli download --resume-download gpt2 --local-dir gpt2	
     尝试解决方法一：使用本地模型参数

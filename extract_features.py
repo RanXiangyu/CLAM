@@ -20,7 +20,7 @@ from models import get_encoder
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 def compute_w_loader(output_path, loader, model, verbose = 0):
-	"""
+	"""  
 	args:
 		output_path: directory to save computed features (.h5 file)
 		model: pytorch model
@@ -96,6 +96,7 @@ if __name__ == '__main__':
 
 		time_elapsed = time.time() - time_start
 		print('\ncomputing features for {} took {} s'.format(output_file_path, time_elapsed))
+		# 以下将output的h5文件转换为pt文件
 		with h5py.File(output_file_path, "r") as file:
 			features = file['features'][:]
 			print('features size: ', features.shape)
