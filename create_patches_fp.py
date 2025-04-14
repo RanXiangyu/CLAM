@@ -11,6 +11,13 @@ import pdb
 import pandas as pd
 from tqdm import tqdm
 
+'''
+ python create_patches_fp.py \
+ --source /data2/ranxiangyu/kidney_wsi \
+ --save_dir /data2/ranxiangyu/kidney_patch/kidney_patch_512/level1 \
+ --patch_size 512 --seg --patch --step_size 512 --stitch --no_auto_skip --patch_level 1 --num_files 4
+'''
+
 # 读取切片结果并生成低分辨率的拼接图
 def stitching(file_path, wsi_object, downscale = 64):
 	start = time.time()
@@ -60,7 +67,7 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 				  use_default_params = False, 
 				  seg = False, save_mask = True, 
 				  stitch= False, 
-				  patch = False, auto_skip=True, process_list = None):
+				  patch = False, auto_skip=True, process_list = None, num_files=None):  # 添加 num_files 参数
 	
 
 	# 加载数据
@@ -76,6 +83,9 @@ def seg_and_patch(source, save_dir, patch_save_dir, mask_save_dir, stitch_save_d
 	mask = df['process'] == 1
 	process_stack = df[mask]
 
+	# 限制处理的文件数量
+	if num_files is not None:
+		process_stack = process_stack.iloc[:num_files]
 	total = len(process_stack)
 
 	legacy_support = 'a' in df.keys()
@@ -259,6 +269,8 @@ parser.add_argument('--patch_level', type=int, default=0,
 					help='downsample level at which to patch')
 parser.add_argument('--process_list',  type = str, default=None,
 					help='name of list of images to process with parameters (.csv)')
+parser.add_argument('--num_files', type=int, default=None,
+                    help='number of files to process (default: process all files)')  # 添加命令行参数
 
 if __name__ == '__main__':
 	args = parser.parse_args()
@@ -321,4 +333,4 @@ if __name__ == '__main__':
 											seg = args.seg,  use_default_params=False, save_mask = True, 
 											stitch= args.stitch,
 											patch_level=args.patch_level, patch = args.patch,
-											process_list = process_list, auto_skip=args.no_auto_skip)
+											process_list = process_list, auto_skip=args.no_auto_skip, num_files=args.num_files)  # 在 __main__ 中传递参数
