@@ -49,7 +49,7 @@ class WSIPatchExtractor:
 		}
 
 
-	def stitching(file_path, wsi_object, downscale = 64):
+	def stitching(self, file_path, wsi_object, downscale = 64):
 		# 读取切片结果并生成低分辨率的拼接图
 		start = time.time()
 		heatmap = StitchCoords(file_path, wsi_object, downscale=downscale, bg_color=(0,0,0), alpha=-1, draw_grid=False)
@@ -57,7 +57,7 @@ class WSIPatchExtractor:
 		
 		return heatmap, total_time
 
-	def segment(WSI_object, seg_params = None, filter_params = None, mask_file = None):
+	def segment(self, WSI_object, seg_params = None, filter_params = None, mask_file = None):
 		"""对wsi进行组织分割"""        
 		if seg_params is None:
 			seg_params = self.default_seg_params
@@ -76,7 +76,7 @@ class WSIPatchExtractor:
 		seg_time_elapsed = time.time() - start_time   
 		return WSI_object, seg_time_elapsed
 
-	def patching(WSI_object, **kwargs):
+	def patching(self, WSI_object, **kwargs):
 		"""对wsi进行切片处理"""
 		### Start Patch Timer
 		start_time = time.time()
@@ -308,7 +308,7 @@ class WSIPatchExtractor:
 
 			seg_time_elapsed = -1
 			if seg:
-				WSI_object, seg_time_elapsed = segment(WSI_object, current_seg_params, current_filter_params) 
+				WSI_object, seg_time_elapsed = self.segment(WSI_object, current_seg_params, current_filter_params) 
 
 			if save_mask:
 				mask = WSI_object.visWSI(**current_vis_params)
@@ -319,13 +319,13 @@ class WSIPatchExtractor:
 			if patch:
 				current_patch_params.update({'patch_level': patch_level, 'patch_size': patch_size, 'step_size': step_size, 
 											'save_path': patch_save_dir})
-				file_path, patch_time_elapsed = patching(WSI_object = WSI_object,  **current_patch_params,)
+				file_path, patch_time_elapsed = self.patching(WSI_object = WSI_object,  **current_patch_params,)
 			
 			stitch_time_elapsed = -1
 			if stitch:
 				file_path = os.path.join(patch_save_dir, slide_id+'.h5')
 				if os.path.isfile(file_path):
-					heatmap, stitch_time_elapsed = stitching(file_path, WSI_object, downscale=64)
+					heatmap, stitch_time_elapsed = self.stitching(file_path, WSI_object, downscale=64)
 					stitch_path = os.path.join(stitch_save_dir, slide_id+'.jpg')
 					heatmap.save(stitch_path)
 
@@ -345,8 +345,7 @@ class WSIPatchExtractor:
 		df.to_csv(os.path.join(save_dir, 'process_list_autogen.csv'), index=False)
 		print("average segmentation time in s per slide: {}".format(seg_times))
 		print("average patching time in s per slide: {}".format(patch_times))
-		print("average stiching time in s per slide: {}".format(stitch_times))
+		print("average stitching time in s per slide: {}".format(stitch_times))
 			
 		return seg_times, patch_times
 
-		
