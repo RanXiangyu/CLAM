@@ -1,26 +1,39 @@
+import os
 # internal imports
 from wsi_core.WholeSlideImage import WholeSlideImage
 from wsi_core.wsi_utils import StitchCoords
 from wsi_core.batch_process_utils import initialize_df
 # other imports
-import os
+# import os
 import numpy as np
 import time
 import argparse
 import pdb
 import pandas as pd
 from tqdm import tqdm
+import sys
+import contextlib
 
 '''
  python create_patches_fp.py \
- --source /data2/ranxiangyu/kidney_wsi \
- --save_dir /data2/ranxiangyu/kidney_patch/kidney_patch_512/level1 \
- --patch_size 512 --seg --patch --step_size 512 --stitch --no_auto_skip --patch_level 1 --num_files 4
+  --source /data2/ranxiangyu/kidney_wsi \
+  --save_dir /data2/ranxiangyu/patch_test \
+  --patch_size 512 \
+  --step_size 512 \
+  --patch_level 1 \
+  --seg \
+  --patch \
+  --stitch \
+  --no_auto_skip \
+  --save_mask \
+  --num_files 1
 '''
 
 class WSIPatchExtractor:
-
 	def __init__(self):
+		# 设置OpenSlide的调试模式为安静模式 tiff文件格式警报
+		os.environ['OPENSLIDE_DEBUG'] = 'quiet'
+
 		self.default_seg_params = {
 			'seg_level': -1,
 			'sthresh': 8,
@@ -88,67 +101,6 @@ class WSIPatchExtractor:
 		patch_time_elapsed = time.time() - start_time
 		return file_path, patch_time_elapsed
 
-	def process(self, source, save_dir, patch_size=256, step_size=256, 
-                patch_level=0, seg=True, patch=True, stitch=True, 
-                save_mask=True, auto_skip=True, process_list=None, 
-                num_files=None, custom_seg_params=None, custom_filter_params=None, 
-                custom_vis_params=None, custom_patch_params=None, 
-                use_default_params=False):
-		"""
-        处理WSI文件，进行组织分割、切片和拼接
-        Args:
-            source (str): WSI文件源目录
-            save_dir (str): 保存目录
-            patch_size (int): 切片大小
-            step_size (int): 步长大小
-            patch_level (int): 切片层级
-            seg (bool): 是否进行组织分割
-            patch (bool): 是否进行切片
-            stitch (bool): 是否进行拼接
-            save_mask (bool): 是否保存掩码
-            auto_skip (bool): 是否自动跳过已处理文件
-            process_list (str): 处理列表文件路径
-            num_files (int): 要处理的文件数量
-            custom_seg_params (dict): 自定义分割参数
-            custom_filter_params (dict): 自定义过滤参数
-            custom_vis_params (dict): 自定义可视化参数
-            custom_patch_params (dict): 自定义切片参数
-            use_default_params (bool): 是否使用默认参数
-        """		
-		seg_params = custom_seg_params if custom_seg_params else self.default_seg_params
-		filter_params = custom_filter_params if custom_filter_params else self.default_filter_params
-		vis_params = custom_vis_params if custom_vis_params else self.default_vis_params
-		patch_params = custom_patch_params if custom_patch_params else self.default_patch_params
-
-		# 创建保存目录
-		patch_save_dir = os.path.join(save_dir, 'patches')
-		mask_save_dir = os.path.join(save_dir, 'masks')
-		stitch_save_dir = os.path.join(save_dir, 'stitches')
-
-		for directory in [patch_save_dir, mask_save_dir, stitch_save_dir]:
-			os.makedirs(directory, exist_ok=True)
-		
-		return self.seg_and_patch(
-			source=source,
-			save_dir=save_dir,
-			patch_save_dir=patch_save_dir,
-			mask_save_dir=mask_save_dir,
-			stitch_save_dir=stitch_save_dir,
-			patch_size=patch_size,
-			step_size=step_size,
-			seg_params=seg_params,
-			filter_params=filter_params,
-			vis_params=vis_params,
-			patch_params=patch_params,
-			patch_level=patch_level,
-			use_default_params=use_default_params,
-			seg=seg,
-			save_mask=save_mask,
-			stitch=stitch,
-			auto_skip=auto_skip,
-			process_list=process_list,
-			num_files=num_files
-		)
 
 	def seg_and_patch(self, source, save_dir, patch_save_dir, mask_save_dir, stitch_save_dir, 
 				  patch_size=256, step_size=256, 
@@ -218,6 +170,8 @@ class WSIPatchExtractor:
 			# Inialize WSI
 			full_path = os.path.join(source, slide)
 			WSI_object = WholeSlideImage(full_path)
+
+			# WSI_object = WholeSlideImage(full_path)
 			# 修改跳过打不开的文件，并输出打不开的文件的列表
 		# 	try:
 		# 		WSI_object = WholeSlideImage(full_path)
@@ -317,8 +271,12 @@ class WSIPatchExtractor:
 
 			patch_time_elapsed = -1 # Default time
 			if patch:
-				current_patch_params.update({'patch_level': patch_level, 'patch_size': patch_size, 'step_size': step_size, 
-											'save_path': patch_save_dir})
+				current_patch_params.update({
+					'patch_level': patch_level, 
+					'patch_size': patch_size, 
+					'step_size': step_size, 
+					'save_path': patch_save_dir
+					})
 				file_path, patch_time_elapsed = self.patching(WSI_object = WSI_object,  **current_patch_params,)
 			
 			stitch_time_elapsed = -1
@@ -349,3 +307,70 @@ class WSIPatchExtractor:
 			
 		return seg_times, patch_times
 
+	def process(self, source, save_dir, patch_size=256, step_size=256, 
+                patch_level=0, seg=True, patch=True, stitch=True, 
+                save_mask=True, auto_skip=True, process_list=None, 
+                num_files=None, custom_seg_params=None, custom_filter_params=None, 
+                custom_vis_params=None, custom_patch_params=None, 
+                use_default_params=False):
+		"""
+        处理WSI文件，进行组织分割、切片和拼接
+        Args:
+            source (str): WSI文件源目录
+            save_dir (str): 保存目录
+            patch_size (int): 切片大小
+            step_size (int): 步长大小
+            patch_level (int): 切片层级
+            seg (bool): 是否进行组织分割
+            patch (bool): 是否进行切片
+            stitch (bool): 是否进行拼接
+            save_mask (bool): 是否保存掩码
+            auto_skip (bool): 是否自动跳过已处理文件
+            process_list (str): 处理列表文件路径
+            num_files (int): 要处理的文件数量
+            custom_seg_params (dict): 自定义分割参数
+            custom_filter_params (dict): 自定义过滤参数
+            custom_vis_params (dict): 自定义可视化参数
+            custom_patch_params (dict): 自定义切片参数
+            use_default_params (bool): 是否使用默认参数
+        """		
+		seg_params = custom_seg_params if custom_seg_params else self.default_seg_params
+		filter_params = custom_filter_params if custom_filter_params else self.default_filter_params
+		vis_params = custom_vis_params if custom_vis_params else self.default_vis_params
+		patch_params = custom_patch_params if custom_patch_params else self.default_patch_params
+
+		# 创建保存目录
+		patch_save_dir = os.path.join(save_dir, 'patches')
+		mask_save_dir = os.path.join(save_dir, 'masks')
+		stitch_save_dir = os.path.join(save_dir, 'stitches')
+
+		for directory in [patch_save_dir, mask_save_dir, stitch_save_dir]:
+			os.makedirs(directory, exist_ok=True)
+		
+		return self.seg_and_patch(
+			source=source,
+			save_dir=save_dir,
+			patch=patch,
+			patch_save_dir=patch_save_dir,
+			mask_save_dir=mask_save_dir,
+			stitch_save_dir=stitch_save_dir,
+			patch_size=patch_size,
+			step_size=step_size,
+			seg_params=seg_params,
+			filter_params=filter_params,
+			vis_params=vis_params,
+			patch_params=patch_params,
+			patch_level=patch_level,
+			use_default_params=use_default_params,
+			seg=seg,
+			save_mask=save_mask,
+			stitch=stitch,
+			auto_skip=auto_skip,
+			process_list=process_list,
+			num_files=num_files
+		)
+
+
+
+
+	
